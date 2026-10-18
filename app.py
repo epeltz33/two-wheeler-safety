@@ -11,6 +11,8 @@ from modules.jobs import JobManager
 from modules.logging_setup import configure_logging, get_logger
 from modules.validation import (
     IMAGE_EXTENSIONS,
+    MAX_DECISION_LEN,
+    MAX_NOTES_LEN,
     VIDEO_EXTENSIONS,
     RateLimiter,
     file_extension,
@@ -19,6 +21,7 @@ from modules.validation import (
     safe_extension,
     sniff_image,
     validate_plate,
+    validate_string,
     validate_violation,
 )
 
@@ -211,12 +214,18 @@ def detect():
     if _rate_limited():
         return jsonify({"error": "rate limit exceeded"}), 429
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON body must be an object"}), 400
 
     if not all(k in data for k in ("plate", "violation", "image_path")):
         return jsonify({
             "error": "plate, violation, and image_path are required"
         }), 400
+
+    for field in ("plate", "violation", "image_path"):
+        if not validate_string(data[field]):
+            return jsonify({"error": f"{field} must be a string"}), 400
 
     plate = validate_plate(data["plate"])
     if plate is None:
@@ -555,7 +564,17 @@ def api_review(violation_id):
     if _rate_limited():
         return jsonify({"error": "rate limit exceeded"}), 429
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON body must be an object"}), 400
+
+    for field in ("review_status", "decision", "notes"):
+        if field in data and not validate_string(data[field]):
+            return jsonify({"error": f"{field} must be a string"}), 400
+    for field, limit in (("decision", MAX_DECISION_LEN), ("notes", MAX_NOTES_LEN)):
+        if field in data and not validate_string(data[field], max_length=limit):
+            return jsonify({"error": f"{field} must be at most {limit} characters"}), 400
+
     review_status = data.get("review_status")
     if not review_status:
         return jsonify({"error": "review_status is required"}), 400
