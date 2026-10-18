@@ -33,6 +33,18 @@ _IMAGE_MAGIC = (
 MAX_PLATE_LEN = 15
 MAX_VIOLATION_LEN = 64
 MAX_AMOUNT = 1_000_000
+MAX_NOTES_LEN = 2000
+MAX_DECISION_LEN = 64
+
+
+def validate_string(value: object, *, max_length: int | None = None) -> bool:
+    """Accept JSON strings only, optionally bounded by character count.
+
+    Empty strings are allowed; required-field and format checks are separate.
+    Callers may skip this check for absent optional fields, but explicit null
+    and other non-string JSON values are rejected.
+    """
+    return isinstance(value, str) and (max_length is None or len(value) <= max_length)
 
 
 def file_extension(filename: str) -> str:

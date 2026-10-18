@@ -129,7 +129,7 @@ def analyze_image(image_path, model, reader, evidence_dir="evidence", conf=0.25)
             "violations": [],
             "evidence_file": None,
             "detections": [],
-            "error": f"could not read image: {image_path}",
+            "error": "could not decode image",
         }
 
     results = model.predict(source=image_path, conf=conf, verbose=False)
